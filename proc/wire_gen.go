@@ -24,21 +24,31 @@ func InitWeb() (http.Handler, error) {
 	userService := &service.UserService{
 		Users: userProvider,
 	}
-	handler, err := web.InitWeb(userService)
+	configuration := _wireConfigurationValue
+	item := &provider.Item{
+		Users: userProvider,
+		Conf:  configuration,
+	}
+	itemService := &service.ItemService{
+		Is:    item,
+		Users: userProvider,
+	}
+	handler, err := web.InitWeb(userService, itemService)
 	if err != nil {
 		return nil, err
 	}
 	return handler, nil
 }
 
-func GetConfig(filename string) *config.Configuration {
-	configuration := config.NewConfigure(filename)
-	return configuration
-}
+var (
+	_wireConfigurationValue = conf
+)
 
 // proc.go:
 
-var Set = wire.NewSet(config.NewConfigure, wire.Struct(new(provider.UserProvider)), wire.Bind(new(service.Users), new(*provider.UserProvider)), wire.Struct(new(service.UserService), "Users"), web.InitWeb)
+var conf = config.NewConfigure("/Users/noaway/workspace/tutorial/config.conf")
+
+var Set = wire.NewSet(wire.Value(conf), provider.ProviderSet, wire.Struct(new(service.UserService), "Users"), wire.Struct(new(service.ItemService), "*"), web.InitWeb)
 
 type Proc struct {
 	httpService svc.HTTPService
@@ -49,7 +59,6 @@ func (p *Proc) Init() (e error) {
 }
 
 func (p *Proc) Start() error {
-	conf := GetConfig("/Users/noaway/workspace/tutorial/config.conf")
 	httpListener, err := net.Listen("tcp", conf.Server.HttpAddr)
 	if err != nil {
 		return err

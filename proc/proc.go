@@ -15,17 +15,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var conf = config.NewConfigure("/Users/noaway/workspace/tutorial/config.conf")
+
 var Set = wire.NewSet(
-	config.NewConfigure,
-	wire.Struct(new(provider.UserProvider)),
-	wire.Bind(new(service.Users), new(*provider.UserProvider)),
+	wire.Value(conf),
+	provider.ProviderSet,
 	wire.Struct(new(service.UserService), "Users"),
+	wire.Struct(new(service.ItemService), "*"),
 	web.InitWeb,
 )
 
 func InitWeb() (http.Handler, error) { panic(wire.Build(Set)) }
-
-func GetConfig(filename string) *config.Configuration { panic(wire.Build(Set)) }
 
 type Proc struct {
 	httpService svc.HTTPService
@@ -36,7 +36,6 @@ func (p *Proc) Init() (e error) {
 }
 
 func (p *Proc) Start() error {
-	conf := GetConfig("/Users/noaway/workspace/tutorial/config.conf")
 	httpListener, err := net.Listen("tcp", conf.Server.HttpAddr)
 	if err != nil {
 		return err
